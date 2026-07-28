@@ -46,8 +46,33 @@
       tags: [security, firewall]
 
     # ==========================================================================
-    # БЛОК 2: Розгортання Core Banking API (Docker Compose Backend)
+    # БЛОК 2: Розгортання Core Banking API (Docker Engine + Backend)
     # ==========================================================================
+    - name: Add official Docker CE repository for RHEL / Oracle Linux
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/rhel/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
+        mode: '0644'
+      tags: [backend, docker, deps]
+
+    - name: Install Docker Engine and Docker Compose Plugin
+      ansible.builtin.dnf:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+        allowerasing: true
+      tags: [backend, docker, deps]
+
+    - name: Ensure Docker service is started and enabled
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+      tags: [backend, docker, deps]
+
     - name: Create destination directory for Core API backend
       ansible.builtin.file:
         path: "{{ app_dir }}"
