@@ -55,13 +55,14 @@
         mode: '0644'
       tags: [backend, docker, deps]
 
-    - name: Install Docker Engine and Docker Compose Plugin
+    - name: Install Docker Engine, Compose Plugin and port management utils
       ansible.builtin.dnf:
         name:
           - docker-ce
           - docker-ce-cli
           - containerd.io
           - docker-compose-plugin
+          - psmisc
         state: present
         allowerasing: true
       tags: [backend, docker, deps]
@@ -90,6 +91,11 @@
         group: "{{ ansible_user }}"
         mode: '0644'
       tags: [backend, docker]
+
+    - name: Ensure host port 8080 is free from old manual PoC processes (Pre-flight cleanup)
+      ansible.builtin.shell: fuser -k 8080/tcp || true
+      changed_when: false
+      tags: [backend, docker, cleanup]
 
     - name: Deploy and start Core API containers via Docker Compose
       ansible.builtin.command:
