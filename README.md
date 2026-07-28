@@ -7,13 +7,13 @@
 ![Ansible](https://img.shields.io/badge/IaC-Ansible%20Automation-black?style=for-the-badge&logo=ansible)
 
 ## 📌 Executive Summary
-This repository demonstrates an Enterprise-grade **Zero-Trust Edge Ingress Architecture** designed for high-security environments (FinTech / Banking). It solves the critical DevOps challenge of configuring an **Nginx Reverse Proxy** on a hardened **Red Hat Enterprise Linux (RHEL) / Oracle Linux 9** server with **SELinux in Enforcing mode** and strict **Firewalld** network policies.
+This repository demonstrates an enterprise-grade **Zero-Trust Edge Ingress Architecture** designed for high-security environments (FinTech / Banking). It solves the critical DevOps challenge of configuring an **Nginx Reverse Proxy** on a hardened **Red Hat Enterprise Linux (RHEL) / Oracle Linux 9** server with **SELinux in Enforcing mode** and strict **Firewalld** network policies.
 
 ## 🏗️ Architecture Diagram
 
 ```mermaid
 graph TD
-    Client[🌐 Web Client / Windows Host] -->|HTTP :80 / HTTPS :443| FW[🧱 RHEL Firewalld]
+    Client[🌐 Web Client / Windows Host] -->|HTTP/80 • HTTPS/443| FW[🧱 RHEL Firewalld]
 
     subgraph RHEL_Server [🖥️ Oracle Linux 9 / RHEL Control Plane]
         FW -->|Allowed Traffic| Nginx[🟢 Nginx Edge Gateway]
@@ -28,35 +28,56 @@ graph TD
     class SELinux_Context security;
 ```
 
+## 🧠 Architecture Decisions (Why this design?)
+* **Why RHEL / Oracle Linux 9?** Enterprise standard for banking infrastructure, offering long-term stability, strong security capabilities, and broad adoption in security-sensitive environments, including support for FIPS-compliant deployments.
+* **Why SELinux Enforcing instead of disabling it?** Disabling SELinux (`setenforce 0`) is typically unacceptable in audited FinTech environments. We proved that proxy routing can be achieved securely by enabling specific kernel booleans (`httpd_can_network_connect`).
+* **Why Non-Root Docker Containers?** Prevents container breakout vulnerabilities. Even if the application layer is compromised, the attacker only gains access to an unprivileged POSIX user (`UID 10001`) inside an isolated, read-only filesystem.
+* **Why Ansible?** Eliminates configuration drift and manual SSH interventions. Ensures the target edge node can be bootstrapped from bare metal to production-ready with a single command.
+
 ## 🎯 Key Engineering Achievements
 * **Zero-Trust Edge Routing:** External clients never access backend databases or microservices directly. All traffic is intercepted, inspected, and routed by the Nginx gateway.
-* **SELinux Mastery:** Overcame standard `Permission Denied` proxy blocks by compiling proper SELinux booleans (`setsebool -P httpd_can_network_connect 1`) without disabling system security (`setenforce 0` is strictly prohibited).
+* **SELinux Mastery:** Overcame standard `Permission Denied` proxy blocks by enabling the required SELinux boolean (`setsebool -P httpd_can_network_connect 1`) without disabling system security (`setenforce 0` is strictly prohibited).
 * **Network Hardening:** Configured `firewalld` to strictly expose only Web Edge ports (`80/443`), dropping all unauthorized external packets.
-* **Containerized Core Backend:** Implemented a lightweight Python API mock running as a **non-root user** inside an isolated Docker Compose network.
-* **Infrastructure as Code (IaC):** Fully codified setup using modular Ansible Playbooks to guarantee idempotency and rapid disaster recovery.
+* **Containerized Core Backend:** Implemented a lightweight Python API mock running as a **non-root user** (`appuser` / UID 10001) inside an isolated Docker Compose network with a read-only root filesystem.
+* **Infrastructure as Code (IaC):** Fully codified setup using modular Ansible Playbooks to guarantee idempotency, automated pre-flight port cleanup, and rapid disaster recovery.
 
 ## 🗂️ Repository Hierarchy
 ```text
 rhel-edge-ingress-automation/
 ├── .github/workflows/          # CI/CD pipelines for linting and security scans
 ├── ansible/                    # IaC: Automated server provisioning
-│   ├── inventory/              # Target server environments
-│   ├── roles/                  # Modular roles: OS, Firewalld, Nginx, SELinux
-│   └── setup-edge.yml          # Master playbook
+│   ├── inventory/              # Target server environments (hosts.ini)
+│   ├── roles/                  # Modular Ansible roles structure
+│   └── setup-edge.yml          # Master idempotent playbook
 ├── docker/
 │   └── backend/                # Mock FinTech Core API (Python + Docker Compose)
-│       ├── Dockerfile          # Non-root container build
-│       ├── api.py              # Mock JSON status endpoint
-│       └── docker-compose.yml  # Backend orchestration
+│       ├── Dockerfile          # Non-root container build (Alpine)
+│       ├── api.py              # Mock JSON status endpoint with POSIX user detection
+│       └── docker-compose.yml  # Hardened backend orchestration (read-only rootfs)
 ├── nginx/
-│   └── conf.d/                 # Standardized Nginx reverse proxy routing
+│   └── conf.d/                 # Standardized OWASP/PCI-DSS Nginx reverse proxy routing
+├── tests/
+│   └── acceptance-test.ps1     # Automated QA & Security acceptance test suite
 └── README.md
 ```
 
-## 🔒 Acceptance Testing & Security Audit Results
-The infrastructure has been validated using the automated QA test suite (tests/acceptance-test.ps1). Below is the verified production response from the target RHEL/Oracle Linux edge node:
+## 🚀 Quick Start & Deployment via Ansible
+To deploy the entire stack automatically against a target Oracle Linux 9 / RHEL node (`192.168.8.2`), run the master Ansible playbook using our containerized workspace directly from your Control Node terminal:
 
-### 1. Core API Security Payload (Non-root container & Real-IP routing)
+```powershell
+docker run --rm -it `
+  -v "${PWD}:/work" `
+  -w /work/ansible `
+  python:3.12-slim `
+  bash -c "apt-get update -qq && apt-get install -y -qq openssh-client sshpass && pip install --quiet ansible && ansible-galaxy collection install ansible.posix && ansible-playbook -i inventory/hosts.ini setup-edge.yml -kK"
+```
+
+---
+
+## 🔒 Acceptance Testing & Security Audit Results
+The infrastructure has been validated using our automated QA test suite (`tests/acceptance-test.ps1`). Below is a representative runtime response from the target RHEL / Oracle Linux edge node:
+
+### 1. Core API Security Payload (Non-Root Container & Real-IP Routing)
 ```json
 {
   "service": "UKR.PAY Core Banking API (PoC)",
@@ -73,44 +94,38 @@ The infrastructure has been validated using the automated QA test suite (tests/a
 ```
 
 ### 2. Defense-in-Depth Verification
-* **OWASP Headers:** Verified (X-Frame-Options: SAMEORIGIN,
-osniff, CSP).
-* **PCI-DSS Compliance:** Server version obfuscation active (Server: nginx).
-* **Network Isolation:** Direct connection attempts to backend port 8080 from external sources are actively dropped by firewalld and 127.0.0.1 binding (`curl` exit code: 28 - Connection timed out).
+* **OWASP Headers:** Verified (`X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'self'`).
+* **PCI-DSS Compliance:** Server version obfuscation active (`Server: nginx` without version leaks).
+* **Network Isolation:** Direct connection attempts to backend port `8080` from external sources are actively dropped by `firewalld` and `127.0.0.1` binding (`curl exit code: 28 - Connection timed out`).
+
+---
 
 ## 📸 Visual Evidence & Execution Logs
 
 ### 1. Ansible Idempotent Playbook Execution
 ![Ansible Idempotent Playbook Execution](docs/screenshots/ansible-idempotency.png)
 
-Demonstrates successful execution of all **18 tasks** with **zero failures** (`ok=18 changed=3 failed=0`), covering SELinux configuration, Firewalld rules, Docker bootstrapping, and Nginx hardening.
+*Demonstrates successful execution of all 18 tasks with zero failures (`ok=18 changed=3 failed=0`), covering SELinux boolean configuration, Firewalld rule persistence, Docker CE bootstrapping, pre-flight process cleanup, and Nginx gateway hardening.*
 
 ### 2. Automated Acceptance Testing Suite
 ![Automated Acceptance Testing Suite](docs/screenshots/acceptance-tests-pass.png)
 
-Demonstrates successful passing of all **4 verification tests**:
-
-- Health Check
-- OWASP Headers
-- Non-root Real-IP audit
-- Zero-Trust port isolation
+*Demonstrates successful passing of all 4 verification tests: Health Check (`/healthz`), OWASP Security Headers audit, Non-root container Real-IP payload verification, and Zero-Trust port `8080` network isolation.*
 
 ---
 
-## 👨‍💻 Author & Engineering Profile
+## 👨‍💻 Engineering Profile
 
-**Leonid Lachmann**
+**Leonid Lachmann**  
+*DevOps & Data Engineer*  
 
-*DevOps & Data Engineer*
-
-- **GitHub Repository:** https://github.com/leoleiden/rhel-edge-ingress-automation
-
-- **Tech Stack:**
-  - **Operating System:** Oracle Linux 9 / Red Hat Enterprise Linux (RHEL)
-  - **Web Server & Edge Ingress:** Nginx (Reverse Proxy, Upstream Keepalive, OWASP Security Headers, PCI-DSS Hardening)
-  - **Containerization & Orchestration:** Docker, Docker Compose, Alpine Linux (Non-root Containers, Read-only Root Filesystem)
-  - **Infrastructure as Code (IaC) & Automation:** Ansible (Idempotent Playbooks, `ansible.posix` Collection)
-  - **Security & Compliance:** SELinux (Enforcing Mode), Firewalld, Zero-Trust Architecture, Network Isolation
-  - **Backend Runtime:** Python 3.12 (Built-in HTTP Server, POSIX User Management)
-  - **Control Plane & Tooling:** Windows 11, PowerShell, Visual Studio Code, Git, Ephemeral Containerized Workspaces
-  - **Testing & Validation:** Automated PowerShell Acceptance Testing (`tests/acceptance-test.ps1`)
+* **GitHub Repository:** [https://github.com/leoleiden/rhel-edge-ingress-automation](https://github.com/leoleiden/rhel-edge-ingress-automation)
+* **Tech Stack:**
+  * **Operating System:** Oracle Linux 9 / Red Hat Enterprise Linux (RHEL)
+  * **Web Server & Edge Ingress:** Nginx (Reverse Proxy, Upstream Keepalive, OWASP Security Headers, PCI-DSS Hardening, `/healthz` endpoint)
+  * **Containerization & Orchestration:** Docker Engine, Docker Compose, Alpine Linux (Non-root Containers, Read-only Root Filesystem, POSIX User Management)
+  * **Infrastructure as Code (IaC) & Automation:** Ansible (Idempotent Playbooks, Self-healing Pre-flight Cleanup, `ansible.posix` Collection)
+  * **Security & Compliance:** SELinux (Enforcing Mode, `httpd_can_network_connect` boolean), Firewalld, Zero-Trust Architecture, Network Isolation
+  * **Backend Runtime:** Python 3.12 (Built-in HTTP Server, JSON API Mock)
+  * **Control Plane & Tooling:** Windows 11, PowerShell, Visual Studio Code, Git, Ephemeral Containerized Workspaces (`python:3.12-slim` + `sshpass`)
+  * **Testing & Quality Assurance:** Automated PowerShell Acceptance Testing (`tests/acceptance-test.ps1`)
