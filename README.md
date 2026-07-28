@@ -53,5 +53,64 @@ rhel-edge-ingress-automation/
 └── README.md
 ```
 
-## 🚀 Quick Start & Verification
-*(Detailed execution instructions and automated CI/CD deployment logs will be added in upcoming releases).*
+## 🔒 Acceptance Testing & Security Audit Results
+The infrastructure has been validated using the automated QA test suite (tests/acceptance-test.ps1). Below is the verified production response from the target RHEL/Oracle Linux edge node:
+
+### 1. Core API Security Payload (Non-root container & Real-IP routing)
+```json
+{
+  "service": "UKR.PAY Core Banking API (PoC)",
+  "status": "OPERATIONAL",
+  "environment": "Production-Edge-Tier",
+  "timestamp": "2026-07-28T13:16:24.827650+00:00",
+  "security_context": {
+    "running_as_user": "appuser",
+    "client_ip_detected": "192.168.8.7",
+    "x_forwarded_for": "192.168.8.7"
+  },
+  "message": "Zero-Trust Edge Gateway routing successful."
+}
+```
+
+### 2. Defense-in-Depth Verification
+* **OWASP Headers:** Verified (X-Frame-Options: SAMEORIGIN,
+osniff, CSP).
+* **PCI-DSS Compliance:** Server version obfuscation active (Server: nginx).
+* **Network Isolation:** Direct connection attempts to backend port 8080 from external sources are actively dropped by firewalld and 127.0.0.1 binding (`curl` exit code: 28 - Connection timed out).
+
+## 📸 Visual Evidence & Execution Logs
+
+### 1. Ansible Idempotent Playbook Execution
+![Ansible Idempotent Playbook Execution](docs/screenshots/ansible-idempotency.png)
+
+Demonstrates successful execution of all **18 tasks** with **zero failures** (`ok=18 changed=3 failed=0`), covering SELinux configuration, Firewalld rules, Docker bootstrapping, and Nginx hardening.
+
+### 2. Automated Acceptance Testing Suite
+![Automated Acceptance Testing Suite](docs/screenshots/acceptance-tests-pass.png)
+
+Demonstrates successful passing of all **4 verification tests**:
+
+- Health Check
+- OWASP Headers
+- Non-root Real-IP audit
+- Zero-Trust port isolation
+
+---
+
+## 👨‍💻 Author & Engineering Profile
+
+**Leonid Lachmann**
+
+*DevOps & Data Engineer*
+
+- **GitHub Repository:** https://github.com/leoleiden/rhel-edge-ingress-automation
+
+- **Tech Stack:**
+  - **Operating System:** Oracle Linux 9 / Red Hat Enterprise Linux (RHEL)
+  - **Web Server & Edge Ingress:** Nginx (Reverse Proxy, Upstream Keepalive, OWASP Security Headers, PCI-DSS Hardening)
+  - **Containerization & Orchestration:** Docker, Docker Compose, Alpine Linux (Non-root Containers, Read-only Root Filesystem)
+  - **Infrastructure as Code (IaC) & Automation:** Ansible (Idempotent Playbooks, `ansible.posix` Collection)
+  - **Security & Compliance:** SELinux (Enforcing Mode), Firewalld, Zero-Trust Architecture, Network Isolation
+  - **Backend Runtime:** Python 3.12 (Built-in HTTP Server, POSIX User Management)
+  - **Control Plane & Tooling:** Windows 11, PowerShell, Visual Studio Code, Git, Ephemeral Containerized Workspaces
+  - **Testing & Validation:** Automated PowerShell Acceptance Testing (`tests/acceptance-test.ps1`)
