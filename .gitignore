@@ -1,0 +1,9 @@
+.vscode/
+.idea/
+*.env
+*.key
+*.pem
+*.log
+__pycache__/
+*.pyc
+.DS_Store
