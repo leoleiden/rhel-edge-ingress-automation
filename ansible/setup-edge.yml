@@ -12,6 +12,14 @@
     # ==========================================================================
     # БЛОК 1: Hardening безпеки (SELinux & Firewalld)
     # ==========================================================================
+    - name: Ensure SELinux management libraries are installed on target node
+      ansible.builtin.dnf:
+        name:
+          - python3-libsemanage
+          - python3-policycoreutils
+        state: present
+      tags: [security, selinux, deps]
+
     - name: Ensure SELinux boolean 'httpd_can_network_connect' is permanently enabled
       ansible.posix.seboolean:
         name: httpd_can_network_connect
