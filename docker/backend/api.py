@@ -2,9 +2,17 @@ import http.server
 import socketserver
 import json
 import os
+import pwd
 from datetime import datetime, timezone
 
 PORT = 8080
+
+def get_current_user():
+    # Надійний спосіб визначення користувача в Docker (без прив'язки до TTY)
+    try:
+        return pwd.getpwuid(os.getuid()).pw_name
+    except Exception:
+        return os.environ.get("USER", os.environ.get("LOGNAME", "non-root (UID 10001)"))
 
 class FintechApiHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -18,7 +26,7 @@ class FintechApiHandler(http.server.SimpleHTTPRequestHandler):
             "environment": "Production-Edge-Tier",
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "security_context": {
-                "running_as_user": os.getlogin() if hasattr(os, 'getlogin') else "non-root",
+                "running_as_user": get_current_user(),
                 "client_ip_detected": client_ip,
                 "x_forwarded_for": forwarded_for
             },
