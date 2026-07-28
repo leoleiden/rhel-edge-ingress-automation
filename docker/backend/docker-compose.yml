@@ -1,0 +1,31 @@
+services:
+  core-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ukrpay-core-api:latest
+    container_name: ukrpay_core_backend
+    restart: unless-stopped
+    ports:
+      # ВАЖЛИВО: Біндимо тільки на localhost (127.0.0.1), щоб закрити прямий доступ ззовні.
+      # Трафік має йти ВИКЛЮЧНО через Nginx Edge Gateway!
+      - "127.0.0.1:8080:8080"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 128M
+        reservations:
+          cpus: '0.10'
+          memory: 64M
+    networks:
+      - edge-internal
+
+networks:
+  edge-internal:
+    driver: bridge
