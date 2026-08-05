@@ -21,7 +21,7 @@ class FintechApiHandler(http.server.SimpleHTTPRequestHandler):
         forwarded_for = self.headers.get('X-Forwarded-For', 'None')
         
         response_data = {
-            "service": "UKR.PAY Core Banking API (PoC)",
+            "service": "FINANCE Core Banking API (PoC)",
             "status": "OPERATIONAL",
             "environment": "Production-Edge-Tier",
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -43,5 +43,5 @@ class FintechApiHandler(http.server.SimpleHTTPRequestHandler):
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] API Request: {args[0]} | From IP: {self.headers.get('X-Real-IP', self.client_address[0])}")
 
 with socketserver.TCPServer(("", PORT), FintechApiHandler) as httpd:
-    print(f"[*] UKR.PAY Core API starting on port {PORT} (Non-root mode)...")
+    print(f"[*] FINANCE Core API starting on port {PORT} (Non-root mode)...")
     httpd.serve_forever()

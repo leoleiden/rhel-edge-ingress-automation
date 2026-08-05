@@ -3,8 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ukrpay-core-api:latest
-    container_name: ukrpay_core_backend
+    image: finance-core-api:latest
+    container_name: finance_core_backend
     restart: unless-stopped
     ports:
       # ВАЖЛИВО: Біндимо тільки на localhost (127.0.0.1), щоб закрити прямий доступ ззовні.

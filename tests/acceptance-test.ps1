@@ -1,11 +1,11 @@
 # ==============================================================================
-# UKR.PAY Enterprise Zero-Trust Edge Gateway
+# FINANCE ZERO-TRUST Edge Gateway
 # Component: Automated Acceptance & Security Test Suite
 # ==============================================================================
 
 Write-Host "
 ==========================================================================" -ForegroundColor Cyan
-Write-Host " 🛡️ UKR.PAY ZERO-TRUST EDGE GATEWAY - ACCEPTANCE TESTING" -ForegroundColor Cyan
+Write-Host " 🛡️ FINANCE ZERO-TRUST EDGE GATEWAY - ACCEPTANCE TESTING" -ForegroundColor Cyan
 Write-Host "==========================================================================
 " -ForegroundColor Cyan
 

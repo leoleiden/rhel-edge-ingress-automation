@@ -80,7 +80,7 @@ The infrastructure has been validated using our automated QA test suite (`tests/
 ### 1. Core API Security Payload (Non-Root Container & Real-IP Routing)
 ```json
 {
-  "service": "UKR.PAY Core Banking API (PoC)",
+  "service": "FINANCE Core Banking API (PoC)",
   "status": "OPERATIONAL",
   "environment": "Production-Edge-Tier",
   "timestamp": "2026-07-28T13:16:24.827650+00:00",

@@ -5,7 +5,7 @@
   gather_facts: true
 
   vars:
-    app_dir: "/opt/ukrpay-core"
+    app_dir: "/opt/finance-core"
     nginx_conf_dir: "/etc/nginx/conf.d"
 
   tasks:
@@ -123,8 +123,8 @@
 
     - name: Deploy hardened OWASP/PCI-DSS Nginx gateway configuration
       ansible.builtin.copy:
-        src: "../nginx/conf.d/ukrpay-gateway.conf"
-        dest: "{{ nginx_conf_dir }}/ukrpay-gateway.conf"
+        src: "../nginx/conf.d/finance-gateway.conf"
+        dest: "{{ nginx_conf_dir }}/finance-gateway.conf"
         owner: root
         group: root
         mode: '0644'
